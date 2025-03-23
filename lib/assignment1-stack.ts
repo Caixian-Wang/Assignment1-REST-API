@@ -27,6 +27,16 @@ export class Assignment1Stack extends cdk.Stack {
           },
         });
         this.table.grantReadData(getFunction);
-    
+
+        // Define the POST Lambda function
+    const postFunction = new lambda.Function(this, 'PostFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'postItem.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      environment: {
+        TABLE_NAME: this.table.tableName,
+      },
+    });
+    this.table.grantWriteData(postFunction);
   }
 }
