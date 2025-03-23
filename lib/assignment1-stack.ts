@@ -75,5 +75,14 @@ export class Assignment1Stack extends cdk.Stack {
         allowOrigins: ["*"],
       },
     });
+
+    const apiKey = api.addApiKey('ApiKey');
+    const usagePlan = api.addUsagePlan('UsagePlan', {
+      throttle: {
+        rateLimit: 100,
+        burstLimit: 200, 
+      },
+    });
+    usagePlan.addApiKey(apiKey);
   }
 }
