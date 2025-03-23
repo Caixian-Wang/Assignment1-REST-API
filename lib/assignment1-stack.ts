@@ -38,5 +38,29 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
     this.table.grantWriteData(postFunction);
+
+        // Define the PUT Lambda function
+    const putFunction = new lambda.Function(this, 'PutFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'putItem.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      environment: {
+        TABLE_NAME: this.table.tableName,
+      },
+    });
+    this.table.grantWriteData(putFunction);
+
+    // Defining a Translation Lambda Function (Integrating Amazon Translate with Caching)
+    const translateFunction = new lambda.Function(this, 'TranslateFunction', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      handler: 'translateItem.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+      environment: {
+        TABLE_NAME: this.table.tableName,
+      },
+    });
+    this.table.grantReadWriteData(translateFunction);
+
+
   }
 }
