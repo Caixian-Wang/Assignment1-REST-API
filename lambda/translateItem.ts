@@ -9,10 +9,10 @@ const translateClient = new TranslateClient({ region: process.env.REGION });
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
-    // 1. 输入验证
+    // 1. 参数验证：确保路径参数和查询参数存在
     const { pk, sk } = event.pathParameters ?? {};
     const language = event.queryStringParameters?.language?.toLowerCase();
-
+    
     if (!pk || !sk || !language) {
       return respond(400, "Missing pk, sk or language parameter");
     }
@@ -25,52 +25,53 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       TableName: process.env.TABLE_NAME!,
       Key: { pk, sk },
     }));
-
     if (!getResult.Item) return respond(404, "Item not found");
-    if (typeof getResult.Item.description !== 'string') {
+    if (typeof getResult.Item.description !== "string") {
       return respond(400, "Item description is not a valid string");
     }
 
-    // 3. 检查是否已有翻译
-    const existingTranslation = getResult.Item.translations?.[language];
-    if (existingTranslation) {
-      return respond(200, { translatedText: existingTranslation });
+    // 3. 检查记录中是否已有该语言的翻译
+    if (getResult.Item.translations && typeof getResult.Item.translations === "object" && getResult.Item.translations[language]) {
+      return respond(200, { translatedText: getResult.Item.translations[language] });
     }
 
     // 4. 调用 Amazon Translate 进行翻译
-    const translateResult = await translateClient.send(new TranslateTextCommand({
+    const translateCommand = new TranslateTextCommand({
       Text: getResult.Item.description,
       SourceLanguageCode: "auto",
       TargetLanguageCode: language,
-    }));
+    });
+    const translateResult = await translateClient.send(translateCommand);
+    const translatedText = translateResult.TranslatedText;
 
-    // 5. 更新 DynamoDB：先初始化 translations 属性再更新目标语言
-    // UPDATED: 修改 UpdateExpression，先用 if_not_exists 初始化 translations 属性
-    await ddbDocClient.send(new UpdateCommand({
+    // 5. 构造新的 translations 对象：如果已有则合并，否则创建新的对象
+    let newTranslations: any = {};
+    if (getResult.Item.translations && typeof getResult.Item.translations === "object") {
+      newTranslations = { ...getResult.Item.translations };
+    }
+    newTranslations[language] = translatedText;
+
+    // 6. 更新 DynamoDB，直接更新整个 translations 属性
+    const updateResult = await ddbDocClient.send(new UpdateCommand({
       TableName: process.env.TABLE_NAME!,
       Key: { pk, sk },
-      UpdateExpression: "SET #translations = if_not_exists(#translations, :emptyMap), #translations.#lang = :text",
-      ExpressionAttributeNames: {
-        "#translations": "translations",
-        "#lang": language
-      },
+      UpdateExpression: "SET translations = :emptyMap",
       ExpressionAttributeValues: {
-        ":emptyMap": {},
-        ":text": translateResult.TranslatedText
+       ":emptyMap": {} 
       },
       ReturnValues: "ALL_NEW" as const,
     }));
 
     return respond(200, {
       message: "Translation cached successfully",
-      translatedText: translateResult.TranslatedText
+      translatedText,
+      updatedAttributes: updateResult.Attributes,
     });
-
-  } catch (error) {
-    console.error("Translation Error:", error);
+  } catch (error: any) {
+    console.error("Error in translateItem:", error);
     return respond(500, {
       error: "Internal Server Error",
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 };
