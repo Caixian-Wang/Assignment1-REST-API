@@ -68,6 +68,11 @@ export class Assignment1Stack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    translateFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['comprehend:DetectDominantLanguage'],
+      resources: ['*'],
+    }));
+    
     const api = new apigateway.RestApi(this, "Assignment1Api", {
       description: "Serverless REST API for Assignment1: supports CRUD operations and text translation caching",
       deployOptions: {
