@@ -65,8 +65,6 @@ export class Assignment1Stack extends cdk.Stack {
       description: "Serverless REST API for Assignment1: supports CRUD operations and text translation caching",
       deployOptions: {
         stageName: "dev",
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
       },
       defaultCorsPreflightOptions: {
         allowHeaders: ["Content-Type", "X-Amz-Date", "Authorization", "x-api-key"],
