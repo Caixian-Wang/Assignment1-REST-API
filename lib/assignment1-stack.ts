@@ -84,5 +84,21 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
     usagePlan.addApiKey(apiKey);
+  
+
+    const itemsResource = api.root.addResource('items');
+    itemsResource.addMethod('GET', new apigateway.LambdaIntegration(getFunction));
+    itemsResource.addMethod('POST', new apigateway.LambdaIntegration(postFunction), {
+      apiKeyRequired: true,
+    });
+    itemsResource.addMethod('PUT', new apigateway.LambdaIntegration(putFunction), {
+      apiKeyRequired: true,
+    });
+
+    const thingsResource = api.root.addResource('things');
+    const pkResource = thingsResource.addResource('{pk}');
+    const skResource = pkResource.addResource('{sk}');
+    const translationResource = skResource.addResource('translation');
+    translationResource.addMethod('GET', new apigateway.LambdaIntegration(translateFunction));
   }
 }
