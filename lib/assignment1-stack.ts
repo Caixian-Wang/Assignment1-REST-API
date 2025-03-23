@@ -4,6 +4,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class Assignment1Stack extends cdk.Stack {
   public readonly table: dynamodb.Table;
@@ -60,6 +61,12 @@ export class Assignment1Stack extends cdk.Stack {
       },
     });
     this.table.grantReadWriteData(translateFunction);
+
+
+    translateFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['translate:TranslateText'],
+      resources: ['*'],
+    }));
 
     const api = new apigateway.RestApi(this, "Assignment1Api", {
       description: "Serverless REST API for Assignment1: supports CRUD operations and text translation caching",
